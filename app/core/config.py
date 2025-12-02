@@ -54,6 +54,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra environment variables (like PORT from Render)
     
     @property
     def is_production(self) -> bool:
