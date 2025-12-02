@@ -136,12 +136,16 @@ async def root():
 
 # For running with uvicorn directly
 if __name__ == "__main__":
+    import os
     import uvicorn
+    
+    # Get port from environment (Render sets PORT) or default to 8000
+    port = int(os.getenv("PORT", "8000"))
     
     uvicorn.run(
         "app.main:app",
         host=settings.HOST,
-        port=8000,
+        port=port,
         reload=settings.is_development,
     )
 
