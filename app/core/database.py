@@ -28,6 +28,8 @@ class Base(DeclarativeBase):
 
 
 # Create async engine
+# Note: statement_cache_size=0 is required for Supabase/pgbouncer
+# which doesn't support prepared statements properly
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
@@ -35,6 +37,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    connect_args={"statement_cache_size": 0},  # Disable prepared statement cache for pgbouncer
 )
 
 # Session factory
