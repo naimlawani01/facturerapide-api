@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: facturerapide_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: facturerapide
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application (optional - for full containerized setup)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: facturerapide_api
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/facturerapide
+      - DATABASE_URL_SYNC=postgresql://postgres:postgres@db:5432/facturerapide
+      - SECRET_KEY=dev-secret-key-change-in-production-min-32-characters
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      - ./storage:/app/storage
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - full
+
+volumes:
+  postgres_data:
+
