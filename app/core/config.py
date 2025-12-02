@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     
     # Configuration du serveur
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
     
     # Configuration de la base de données
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/facturerapide"
