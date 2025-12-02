@@ -1,14 +1,13 @@
 """
 Alembic environment configuration.
-Supports async SQLAlchemy with PostgreSQL.
+Uses SYNC engine (psycopg) for migrations, even though the app uses async SQLAlchemy.
+This is because Alembic works better with sync engines, especially with Supabase/pgbouncer.
 """
 
-import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
@@ -21,7 +20,25 @@ from app.models import *  # noqa: Import all models for autogenerate
 config = context.config
 
 # Set database URL from application settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL_SYNC)
+# Alembic needs a SYNC driver (psycopg), not async (asyncpg)
+database_url = settings.DATABASE_URL_SYNC
+
+# Convert asyncpg to psycopg if needed (Alembic requires sync driver)
+if "+asyncpg" in database_url:
+    database_url = database_url.replace("+asyncpg", "+psycopg")
+elif "postgresql://" in database_url and "+" not in database_url:
+    # If no driver specified, add psycopg
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg://")
+
+# Use attributes to avoid ConfigParser interpolation issues with % in URL
+config.attributes["sqlalchemy.url"] = database_url
+
+# Also set in the main section for compatibility
+try:
+    config.set_main_option("sqlalchemy.url", database_url)
+except ValueError:
+    # If ConfigParser fails (due to % in password), that's OK - we use attributes
+    pass
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
@@ -43,7 +60,15 @@ def run_migrations_offline() -> None:
     Calls to context.execute() here emit the given string to the
     script output.
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Get URL from attributes first (to avoid ConfigParser interpolation issues)
+    url = config.attributes.get("sqlalchemy.url") or config.get_main_option("sqlalchemy.url") or database_url
+    
+    # Convert asyncpg to psycopg if needed
+    if "+asyncpg" in url:
+        url = url.replace("+asyncpg", "+psycopg")
+    elif "postgresql://" in url and "+" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg://")
+    
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -70,28 +95,31 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
+def run_migrations_online() -> None:
     """
-    Run migrations in 'online' mode with async engine.
+    Run migrations in 'online' mode with SYNC engine.
     
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
+    We use a sync engine (psycopg) instead of async because:
+    1. Alembic works better with sync engines
+    2. Supabase uses pgbouncer which has issues with asyncpg prepared statements
     """
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Get URL from attributes first
+    url = config.attributes.get("sqlalchemy.url") or config.get_main_option("sqlalchemy.url") or database_url
+    
+    # Convert asyncpg to psycopg if needed
+    if "+asyncpg" in url:
+        url = url.replace("+asyncpg", "+psycopg")
+    elif "postgresql://" in url and "+" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg://")
+    
+    # Create SYNC engine (not async)
+    connectable = create_engine(
+        url,
         poolclass=pool.NullPool,
     )
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
-
-
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
-    asyncio.run(run_async_migrations())
+    with connectable.connect() as connection:
+        do_run_migrations(connection)
 
 
 if context.is_offline_mode():
