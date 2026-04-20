@@ -10,6 +10,7 @@ build/
 .venv/
 venv/
 env/
+.env
 
 # Environment
 .env
@@ -30,3 +31,5 @@ storage/receipts/*.pdf
 
 # Docker
 docker-compose.override.yml
+
+.env
