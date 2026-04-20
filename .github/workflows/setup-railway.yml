@@ -25,9 +25,21 @@ jobs:
           railway status || { echo "❌ Cannot access project. Check RAILWAY_TOKEN (must be a project token)."; exit 1; }
           echo ""
 
-          # Link to backend service
+          # Create PostgreSQL if it doesn't exist
+          echo "🗄️ Adding PostgreSQL..."
+          railway add --database postgres || echo "⚠️ PostgreSQL may already exist, continuing..."
+          echo ""
+
+          # Create backend service linked to GitHub repo
+          echo "⚙️ Creating backend service..."
+          railway add \
+            --service "facturerapide-api" \
+            --repo "naimlawani01/facturerapide-api" || echo "⚠️ Service may already exist, continuing..."
+          echo ""
+
+          # Link to backend service for subsequent commands
           echo "🔗 Linking to facturerapide-api..."
-          railway service link facturerapide-api || { echo "❌ Service 'facturerapide-api' not found. Create it from the Railway dashboard first."; exit 1; }
+          railway service link facturerapide-api || { echo "❌ Could not link to service."; exit 1; }
           echo ""
 
           # Configure environment variables
