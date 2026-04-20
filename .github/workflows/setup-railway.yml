@@ -2,15 +2,10 @@ name: Setup Railway Infrastructure
 
 on:
   workflow_dispatch:
-    inputs:
-      project_name:
-        description: "Railway project name"
-        required: true
-        default: "facturerapide"
 
 jobs:
   provision:
-    name: Create Railway Services
+    name: Configure Railway Services
     runs-on: ubuntu-latest
 
     steps:
@@ -19,36 +14,23 @@ jobs:
       - name: Install Railway CLI
         run: npm i -g @railway/cli
 
-      - name: Create Railway project
-        run: |
-          echo "🚀 Creating Railway project: ${{ github.event.inputs.project_name }}"
-          railway init --name "${{ github.event.inputs.project_name }}" || echo "Project may already exist, continuing..."
+      - name: Configure Railway services
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Add PostgreSQL database
         run: |
-          echo "🗄️ Adding PostgreSQL..."
-          railway add --database postgres || echo "PostgreSQL may already exist, continuing..."
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # With a project token, Railway CLI already knows the project.
+          # Do NOT use "railway init" — it creates a new project and breaks the token scope.
 
-      - name: Create backend service linked to GitHub repo
-        run: |
-          echo "⚙️ Creating backend service..."
-          railway add \
-            --service "facturerapide-api" \
-            --repo "naimlawani01/facturerapide-api" || echo "Service may already exist, continuing..."
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          echo "📌 Checking project access..."
+          railway status || { echo "❌ Cannot access project. Check RAILWAY_TOKEN (must be a project token)."; exit 1; }
+          echo ""
 
-      - name: Link to backend service
-        run: railway service link facturerapide-api
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # Link to backend service
+          echo "🔗 Linking to facturerapide-api..."
+          railway service link facturerapide-api || { echo "❌ Service 'facturerapide-api' not found. Create it from the Railway dashboard first."; exit 1; }
+          echo ""
 
-      - name: Configure environment variables
-        run: |
+          # Configure environment variables
           echo "📝 Setting environment variables..."
           SECRET_KEY=$(openssl rand -hex 32)
           DB_REF='${{ '{{' }}Postgres.DATABASE_URL{{ '}}' }}'
@@ -68,23 +50,17 @@ jobs:
             "PDF_RECEIPTS_PATH=./storage/receipts" \
             "HOST=0.0.0.0" \
             "PORT=8000"
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          echo ""
 
-      - name: Generate public domain
-        run: |
+          # Generate public domain (if not already set)
           echo "🌐 Generating public domain..."
-          railway domain
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          railway domain || echo "⚠️ Domain may already exist"
+          echo ""
 
-      - name: Show project info
-        run: |
-          echo "✅ Railway infrastructure ready!"
+          # Summary
+          echo "✅ Railway configuration complete!"
           echo ""
           railway status
           echo ""
           echo "📋 Variables set on facturerapide-api:"
           railway variables
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
