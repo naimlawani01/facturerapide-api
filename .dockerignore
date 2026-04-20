@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.env
+.venv
+venv
+.git
+.github
+.gitignore
+.DS_Store
+tests/
+scripts/
+docker-compose.yml
+*.md
+storage/invoices/*.pdf
+storage/receipts/*.pdf
