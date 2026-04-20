@@ -2,11 +2,11 @@ name: Setup Railway Infrastructure
 
 on:
   workflow_dispatch:
-
-env:
-  RAILWAY_PROJECT: facturerapide
-  SERVICE_NAME: facturerapide-api
-  GITHUB_REPO: naimlawani01/facturerapide-api
+    inputs:
+      railway_project:
+        description: "Nom du projet Railway"
+        required: true
+        default: facturerapide
 
 jobs:
   provision:
@@ -24,8 +24,8 @@ jobs:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           # Account/workspace token (RAILWAY_API_TOKEN) — required for creating services
-          echo "📌 Linking to project '${{ env.RAILWAY_PROJECT }}'..."
-          railway link -p "${{ env.RAILWAY_PROJECT }}" || { echo "❌ Cannot link to project. Check RAILWAY_TOKEN and project name."; exit 1; }
+          echo "📌 Linking to project '${{ inputs.railway_project }}'..."
+          railway link -p "${{ inputs.railway_project }}" || { echo "❌ Cannot link to project. Check RAILWAY_API_TOKEN and project name."; exit 1; }
           echo ""
 
           # Create PostgreSQL if it doesn't exist
@@ -34,21 +34,22 @@ jobs:
           echo ""
 
           # Create backend service linked to GitHub repo
-          echo "⚙️ Creating backend service '${{ env.SERVICE_NAME }}'..."
+          SERVICE_NAME="${{ github.event.repository.name }}"
+          echo "⚙️ Creating backend service '${SERVICE_NAME}'..."
           railway add \
-            --service "${{ env.SERVICE_NAME }}" \
-            --repo "${{ env.GITHUB_REPO }}" || echo "⚠️ Service may already exist, continuing..."
+            --service "${SERVICE_NAME}" \
+            --repo "${{ github.repository }}" || echo "⚠️ Service may already exist, continuing..."
           echo ""
 
           # Link to backend service for variable/domain commands
-          echo "🔗 Linking to service '${{ env.SERVICE_NAME }}'..."
-          railway service link "${{ env.SERVICE_NAME }}" || { echo "❌ Could not link to service '${{ env.SERVICE_NAME }}'."; exit 1; }
+          echo "🔗 Linking to service '${SERVICE_NAME}'..."
+          railway service link "${SERVICE_NAME}" || { echo "❌ Could not link to service '${SERVICE_NAME}'."; exit 1; }
           echo ""
 
           # Configure environment variables
           echo "📝 Setting environment variables..."
           SECRET_KEY=$(openssl rand -hex 32)
-          DB_REF='${{ '{{' }}Postgres.DATABASE_URL{{ '}}' }}'
+          DB_REF='$${{ '{{' }}Postgres.DATABASE_URL${{ '}}' }}'
           railway variables set \
             "ENVIRONMENT=production" \
             "DEBUG=false" \
@@ -77,5 +78,5 @@ jobs:
           echo ""
           railway status
           echo ""
-          echo "📋 Variables set on ${{ env.SERVICE_NAME }}:"
+          echo "📋 Variables set on ${SERVICE_NAME}:"
           railway variables

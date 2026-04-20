@@ -66,17 +66,19 @@ jobs:
         run: npm i -g @railway/cli
 
       - name: Check service exists and deploy
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
-          # Account token — link to project first
-          railway link -p facturerapide || { echo "❌ Cannot link to project."; exit 1; }
+          SERVICE_NAME="${{ github.event.repository.name }}"
 
-          if railway service link facturerapide-api 2>/dev/null; then
+          # Account token — link to project first
+          railway link -p "${{ vars.RAILWAY_PROJECT }}" || { echo "❌ Cannot link to project."; exit 1; }
+
+          if railway service link "${SERVICE_NAME}" 2>/dev/null; then
             echo "✅ Service found. Deploying..."
-            railway up --service facturerapide-api --detach
+            railway up --service "${SERVICE_NAME}" --detach
           else
-            echo "⚠️ Service 'facturerapide-api' not found."
+            echo "⚠️ Service '${SERVICE_NAME}' not found."
             echo "👉 Run the 'Setup Railway Infrastructure' workflow first (Actions > Setup Railway Infrastructure > Run workflow)."
             echo "Skipping deploy."
           fi
-        env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
