@@ -3,9 +3,14 @@ name: Setup Railway Infrastructure
 on:
   workflow_dispatch:
 
+env:
+  RAILWAY_PROJECT: facturerapide
+  SERVICE_NAME: facturerapide-api
+  GITHUB_REPO: naimlawani01/facturerapide-api
+
 jobs:
   provision:
-    name: Configure Railway Services
+    name: Create & Configure Railway Services
     runs-on: ubuntu-latest
 
     steps:
@@ -14,15 +19,13 @@ jobs:
       - name: Install Railway CLI
         run: npm i -g @railway/cli
 
-      - name: Configure Railway services
+      - name: Provision Railway infrastructure
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          # With a project token, Railway CLI already knows the project.
-          # Do NOT use "railway init" — it creates a new project and breaks the token scope.
-
-          echo "📌 Checking project access..."
-          railway status || { echo "❌ Cannot access project. Check RAILWAY_TOKEN (must be a project token)."; exit 1; }
+          # Team/account token — must link to project explicitly
+          echo "📌 Linking to project '${{ env.RAILWAY_PROJECT }}'..."
+          railway link -p "${{ env.RAILWAY_PROJECT }}" || { echo "❌ Cannot link to project. Check RAILWAY_TOKEN and project name."; exit 1; }
           echo ""
 
           # Create PostgreSQL if it doesn't exist
@@ -31,15 +34,15 @@ jobs:
           echo ""
 
           # Create backend service linked to GitHub repo
-          echo "⚙️ Creating backend service..."
+          echo "⚙️ Creating backend service '${{ env.SERVICE_NAME }}'..."
           railway add \
-            --service "facturerapide-api" \
-            --repo "naimlawani01/facturerapide-api" || echo "⚠️ Service may already exist, continuing..."
+            --service "${{ env.SERVICE_NAME }}" \
+            --repo "${{ env.GITHUB_REPO }}" || echo "⚠️ Service may already exist, continuing..."
           echo ""
 
-          # Link to backend service for subsequent commands
-          echo "🔗 Linking to facturerapide-api..."
-          railway service link facturerapide-api || { echo "❌ Could not link to service."; exit 1; }
+          # Link to backend service for variable/domain commands
+          echo "🔗 Linking to service '${{ env.SERVICE_NAME }}'..."
+          railway service link "${{ env.SERVICE_NAME }}" || { echo "❌ Could not link to service '${{ env.SERVICE_NAME }}'."; exit 1; }
           echo ""
 
           # Configure environment variables
@@ -64,7 +67,7 @@ jobs:
             "PORT=8000"
           echo ""
 
-          # Generate public domain (if not already set)
+          # Generate public domain
           echo "🌐 Generating public domain..."
           railway domain || echo "⚠️ Domain may already exist"
           echo ""
@@ -74,5 +77,5 @@ jobs:
           echo ""
           railway status
           echo ""
-          echo "📋 Variables set on facturerapide-api:"
+          echo "📋 Variables set on ${{ env.SERVICE_NAME }}:"
           railway variables

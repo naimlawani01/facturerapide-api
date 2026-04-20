@@ -67,6 +67,9 @@ jobs:
 
       - name: Check service exists and deploy
         run: |
+          # Team token — link to project first
+          railway link -p facturerapide || { echo "❌ Cannot link to project."; exit 1; }
+
           if railway service link facturerapide-api 2>/dev/null; then
             echo "✅ Service found. Deploying..."
             railway up --service facturerapide-api --detach
