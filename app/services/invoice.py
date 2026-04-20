@@ -91,7 +91,7 @@ class InvoiceService:
         self.db.add(invoice)
         await self.db.flush()
         
-        # Add items
+        # Add items and calculate totals
         items = []
         for item_data in data.items:
             item = await self._create_item(invoice, item_data, owner.id)
@@ -99,12 +99,10 @@ class InvoiceService:
         
         await self.db.flush()
         
-        # Calculate totals manually
-        subtotal = sum(i.subtotal for i in items)
-        tax_amount = sum(i.tax_amount for i in items)
-        invoice.subtotal = subtotal
-        invoice.tax_amount = tax_amount
-        invoice.total = subtotal + tax_amount
+        # Calculate totals manually from the items we just created
+        invoice.subtotal = sum(item.subtotal for item in items)
+        invoice.tax_amount = sum(item.tax_amount for item in items)
+        invoice.total = invoice.subtotal + invoice.tax_amount
         
         await self.db.flush()
         await self.db.refresh(invoice)
@@ -142,7 +140,7 @@ class InvoiceService:
                 quantity=data.quantity,
                 unit=data.unit or product.unit,
                 unit_price=data.unit_price if data.unit_price else product.unit_price,
-                tax_rate=data.tax_rate if data.tax_rate else product.tax_rate,
+                tax_rate=data.tax_rate if data.tax_rate is not None else product.tax_rate,
                 discount_percent=data.discount_percent,
             )
         else:
@@ -283,8 +281,10 @@ class InvoiceService:
         # Refresh to get updated items
         await self.db.refresh(invoice)
         
-        # Recalculate totals
-        invoice.calculate_totals()
+        # Recalculate totals manually
+        invoice.subtotal = sum(i.subtotal for i in invoice.items)
+        invoice.tax_amount = sum(i.tax_amount for i in invoice.items)
+        invoice.total = invoice.subtotal + invoice.tax_amount
         await self.db.flush()
         
         return invoice
@@ -311,8 +311,10 @@ class InvoiceService:
         # Refresh to get updated items
         await self.db.refresh(invoice)
         
-        # Recalculate totals
-        invoice.calculate_totals()
+        # Recalculate totals manually
+        invoice.subtotal = sum(i.subtotal for i in invoice.items)
+        invoice.tax_amount = sum(i.tax_amount for i in invoice.items)
+        invoice.total = invoice.subtotal + invoice.tax_amount
         await self.db.flush()
         
         return invoice

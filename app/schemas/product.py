@@ -16,7 +16,7 @@ class ProductBase(BaseSchema):
     description: str | None = None
     sku: str | None = Field(None, max_length=100)
     unit_price: Decimal = Field(..., ge=0, decimal_places=2)
-    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100, decimal_places=2)
+    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100, decimal_places=2, description="Taux de TVA en pourcentage")
     unit: str = Field(default="unité", max_length=50)
     is_service: bool = False
     stock_quantity: int = Field(default=0, ge=0)
@@ -35,7 +35,7 @@ class ProductUpdate(BaseSchema):
     description: str | None = None
     sku: str | None = Field(None, max_length=100)
     unit_price: Decimal | None = Field(None, ge=0, decimal_places=2)
-    tax_rate: Decimal | None = Field(None, ge=0, le=100, decimal_places=2)
+    tax_rate: Decimal | None = Field(None, ge=0, le=100, decimal_places=2, description="Taux de TVA en pourcentage")
     unit: str | None = Field(None, max_length=50)
     is_service: bool | None = None
     stock_quantity: int | None = Field(None, ge=0)
@@ -50,7 +50,6 @@ class ProductResponse(ProductBase):
     owner_id: int
     is_active: bool
     is_low_stock: bool
-    price_ttc: Decimal
     created_at: datetime
     updated_at: datetime
 

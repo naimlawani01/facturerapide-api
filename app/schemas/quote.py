@@ -17,7 +17,7 @@ class QuoteItemBase(BaseSchema):
     quantity: Decimal = Field(default=Decimal("1.00"), gt=0)
     unit: str = Field(default="unité", max_length=50)
     unit_price: Decimal = Field(..., ge=0)
-    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100)
+    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100, description="Taux de TVA en %")
     discount_percent: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
 
 
@@ -75,7 +75,7 @@ class QuoteResponse(QuoteBase):
     quote_number: str
     status: QuoteStatus
     subtotal: Decimal
-    tax_total: Decimal
+    tax_amount: Decimal
     total: Decimal
     converted_invoice_id: int | None
     pdf_path: str | None

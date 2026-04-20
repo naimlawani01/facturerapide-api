@@ -24,7 +24,7 @@ class Product(BaseModel):
         description: Detailed description
         sku: Stock Keeping Unit (unique identifier)
         unit_price: Price per unit (HT - hors taxe)
-        tax_rate: VAT rate (e.g., 20.0 for 20%)
+        tax_rate: VAT rate in percentage (e.g., 20.00 for 20% TVA)
         unit: Unit of measurement (pièce, heure, kg, etc.)
         is_service: Whether this is a service (no stock management)
         stock_quantity: Current stock level (for products only)
@@ -64,8 +64,9 @@ class Product(BaseModel):
     )
     tax_rate: Mapped[Decimal] = mapped_column(
         Numeric(precision=5, scale=2),
-        default=Decimal("20.00"),  # Default French VAT
+        default=Decimal("20.00"),
         nullable=False,
+        comment="VAT rate in percentage (e.g., 20.00 for 20%)",
     )
     unit: Mapped[str] = mapped_column(
         String(50),
@@ -109,11 +110,6 @@ class Product(BaseModel):
         if self.is_service:
             return False
         return self.stock_quantity <= self.low_stock_threshold
-    
-    @property
-    def price_ttc(self) -> Decimal:
-        """Calculate price including tax (TTC)."""
-        return self.unit_price * (1 + self.tax_rate / 100)
     
     def __repr__(self) -> str:
         return f"<Product(id={self.id}, name='{self.name}', price={self.unit_price})>"

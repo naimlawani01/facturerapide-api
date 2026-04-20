@@ -214,9 +214,8 @@ class PDFService:
             [
                 Paragraph("<b>Description</b>", styles['Bold']),
                 Paragraph("<b>Qté</b>", styles['Bold']),
-                Paragraph("<b>Prix Unit. HT</b>", styles['Bold']),
-                Paragraph("<b>TVA</b>", styles['Bold']),
-                Paragraph("<b>Total HT</b>", styles['Bold']),
+                Paragraph("<b>Prix Unit.</b>", styles['Bold']),
+                Paragraph("<b>Total</b>", styles['Bold']),
             ]
         ]
         
@@ -226,13 +225,12 @@ class PDFService:
                 Paragraph(item.description, styles['NormalText']),
                 Paragraph(f"{item.quantity} {item.unit}", styles['NormalText']),
                 Paragraph(self._format_currency(item.unit_price), styles['RightAlign']),
-                Paragraph(f"{item.tax_rate}%", styles['RightAlign']),
-                Paragraph(self._format_currency(item.subtotal), styles['RightAlign']),
+                Paragraph(self._format_currency(item.total), styles['RightAlign']),
             ])
         
         items_table = Table(
             items_data,
-            colWidths=[70*mm, 25*mm, 30*mm, 20*mm, 30*mm],
+            colWidths=[85*mm, 30*mm, 30*mm, 30*mm],
             repeatRows=1,
         )
         items_table.setStyle(TableStyle([
@@ -272,7 +270,7 @@ class PDFService:
         # ===== TOTALS =====
         totals_data = [
             ["Sous-total HT", self._format_currency(invoice.subtotal)],
-            ["TVA", self._format_currency(invoice.tax_total)],
+            ["TVA", self._format_currency(invoice.tax_amount)],
             ["Total TTC", self._format_currency(invoice.total)],
         ]
         
@@ -416,9 +414,8 @@ class PDFService:
             [
                 Paragraph("<b>Description</b>", styles['Bold']),
                 Paragraph("<b>Qté</b>", styles['Bold']),
-                Paragraph("<b>Prix Unit. HT</b>", styles['Bold']),
-                Paragraph("<b>TVA</b>", styles['Bold']),
-                Paragraph("<b>Total HT</b>", styles['Bold']),
+                Paragraph("<b>Prix Unit.</b>", styles['Bold']),
+                Paragraph("<b>Total</b>", styles['Bold']),
             ]
         ]
         
@@ -427,13 +424,12 @@ class PDFService:
                 Paragraph(item.description, styles['NormalText']),
                 Paragraph(f"{item.quantity} {item.unit}", styles['NormalText']),
                 Paragraph(self._format_currency(item.unit_price), styles['RightAlign']),
-                Paragraph(f"{item.tax_rate}%", styles['RightAlign']),
-                Paragraph(self._format_currency(item.subtotal), styles['RightAlign']),
+                Paragraph(self._format_currency(item.total), styles['RightAlign']),
             ])
         
         items_table = Table(
             items_data,
-            colWidths=[70*mm, 25*mm, 30*mm, 20*mm, 30*mm],
+            colWidths=[85*mm, 30*mm, 30*mm, 30*mm],
             repeatRows=1,
         )
         items_table.setStyle(TableStyle([
@@ -464,7 +460,7 @@ class PDFService:
         # ===== TOTALS =====
         totals_data = [
             ["Sous-total HT", self._format_currency(quote.subtotal)],
-            ["TVA", self._format_currency(quote.tax_total)],
+            ["TVA", self._format_currency(quote.tax_amount)],
             ["Total TTC", self._format_currency(quote.total)],
         ]
         

@@ -81,13 +81,17 @@ class QuoteService:
         self.db.add(quote)
         await self.db.flush()
         
-        # Add items
+        # Add items and calculate totals
+        items = []
         for item_data in data.items:
             item = await self._create_item(quote, item_data, owner.id)
             quote.items.append(item)
+            items.append(item)
         
-        # Calculate totals
-        quote.calculate_totals()
+        # Calculate totals manually from the items we just created
+        quote.subtotal = sum(item.subtotal for item in items)
+        quote.tax_amount = sum(item.tax_amount for item in items)
+        quote.total = quote.subtotal + quote.tax_amount
         
         await self.db.flush()
         await self.db.refresh(quote)
@@ -123,7 +127,7 @@ class QuoteService:
                 quantity=data.quantity,
                 unit=data.unit or product.unit,
                 unit_price=data.unit_price if data.unit_price else product.unit_price,
-                tax_rate=data.tax_rate if data.tax_rate else product.tax_rate,
+                tax_rate=data.tax_rate if data.tax_rate is not None else product.tax_rate,
                 discount_percent=data.discount_percent,
             )
         else:
@@ -239,7 +243,11 @@ class QuoteService:
         item = await self._create_item(quote, data, owner_id)
         await self.db.flush()
         await self.db.refresh(quote)
-        quote.calculate_totals()
+        
+        # Recalculate totals manually
+        quote.subtotal = sum(i.subtotal for i in quote.items)
+        quote.tax_amount = sum(i.tax_amount for i in quote.items)
+        quote.total = quote.subtotal + quote.tax_amount
         await self.db.flush()
         
         return quote
@@ -262,7 +270,11 @@ class QuoteService:
         await self.db.delete(item)
         await self.db.flush()
         await self.db.refresh(quote)
-        quote.calculate_totals()
+        
+        # Recalculate totals manually
+        quote.subtotal = sum(i.subtotal for i in quote.items)
+        quote.tax_amount = sum(i.tax_amount for i in quote.items)
+        quote.total = quote.subtotal + quote.tax_amount
         await self.db.flush()
         
         return quote
@@ -353,7 +365,7 @@ class QuoteService:
             terms=quote.terms,
             status=InvoiceStatus.DRAFT,
             subtotal=quote.subtotal,
-            tax_total=quote.tax_total,
+            tax_amount=quote.tax_amount,
             total=quote.total,
         )
         

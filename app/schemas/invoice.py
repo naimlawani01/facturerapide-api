@@ -19,7 +19,7 @@ class InvoiceItemBase(BaseSchema):
     quantity: Decimal = Field(default=Decimal("1.00"), gt=0)
     unit: str = Field(default="unité", max_length=50)
     unit_price: Decimal = Field(..., ge=0)
-    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100)
+    tax_rate: Decimal = Field(default=Decimal("20.00"), ge=0, le=100, description="Taux de TVA en %")
     discount_percent: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
 
 
@@ -36,7 +36,7 @@ class InvoiceItemUpdate(BaseSchema):
     quantity: Decimal | None = Field(None, gt=0)
     unit: str | None = Field(None, max_length=50)
     unit_price: Decimal | None = Field(None, ge=0)
-    tax_rate: Decimal | None = Field(None, ge=0, le=100)
+    tax_rate: Decimal | None = Field(None, ge=0, le=100, description="Taux de TVA en %")
     discount_percent: Decimal | None = Field(None, ge=0, le=100)
 
 
@@ -88,7 +88,7 @@ class InvoiceResponse(InvoiceBase):
     invoice_number: str
     status: InvoiceStatus
     subtotal: Decimal
-    tax_total: Decimal
+    tax_amount: Decimal
     total: Decimal
     amount_paid: Decimal
     balance_due: Decimal

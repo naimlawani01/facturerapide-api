@@ -3,8 +3,10 @@ Configuration de l'application FactureRapide.
 Gestion centralisée de toutes les variables d'environnement.
 """
 
+import re
 from functools import lru_cache
 from typing import Optional, List
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -50,6 +52,17 @@ class Settings(BaseSettings):
     # URLs
     FRONTEND_URL: str = "http://localhost:3000"
     
+
+    @model_validator(mode="after")
+    def _fix_database_urls(self):
+        """Auto-convert DATABASE_URL for asyncpg/psycopg drivers (Railway compatibility)."""
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://") or url.startswith("postgres://"):
+            base = re.sub(r"^postgres(ql)?://", "postgresql://", url)
+            self.DATABASE_URL = base.replace("postgresql://", "postgresql+asyncpg://", 1)
+            self.DATABASE_URL_SYNC = base.replace("postgresql://", "postgresql+psycopg://", 1)
+        return self
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

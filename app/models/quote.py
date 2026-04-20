@@ -39,9 +39,7 @@ class Quote(BaseModel):
         issue_date: Date when quote was created
         validity_date: Quote validity expiration date
         notes: Additional notes/terms
-        subtotal: Total before tax
-        tax_total: Total tax amount
-        total: Grand total (subtotal + tax)
+        total: Grand total
         converted_invoice_id: ID of invoice if converted
         pdf_path: Path to generated PDF file
     """
@@ -100,16 +98,19 @@ class Quote(BaseModel):
         Numeric(precision=12, scale=2),
         default=Decimal("0.00"),
         nullable=False,
+        comment="Subtotal HT (before tax)",
     )
-    tax_total: Mapped[Decimal] = mapped_column(
+    tax_amount: Mapped[Decimal] = mapped_column(
         Numeric(precision=12, scale=2),
         default=Decimal("0.00"),
         nullable=False,
+        comment="Total tax amount",
     )
     total: Mapped[Decimal] = mapped_column(
         Numeric(precision=12, scale=2),
         default=Decimal("0.00"),
         nullable=False,
+        comment="Total TTC (with tax)",
     )
     
     # Conversion tracking
@@ -154,8 +155,8 @@ class Quote(BaseModel):
     def calculate_totals(self) -> None:
         """Recalculate quote totals from items."""
         self.subtotal = sum(item.subtotal for item in self.items)
-        self.tax_total = sum(item.tax_amount for item in self.items)
-        self.total = self.subtotal + self.tax_total
+        self.tax_amount = sum(item.tax_amount for item in self.items)
+        self.total = self.subtotal + self.tax_amount
     
     def __repr__(self) -> str:
         return f"<Quote(id={self.id}, number='{self.quote_number}', total={self.total})>"
@@ -170,8 +171,7 @@ class QuoteItem(BaseModel):
         product_id: Optional foreign key to a product
         description: Item description
         quantity: Number of units
-        unit_price: Price per unit (HT)
-        tax_rate: VAT rate for this item
+        unit_price: Price per unit
         discount_percent: Discount percentage
     """
     
@@ -213,6 +213,7 @@ class QuoteItem(BaseModel):
         Numeric(precision=5, scale=2),
         default=Decimal("20.00"),
         nullable=False,
+        comment="VAT rate in percentage",
     )
     discount_percent: Mapped[Decimal] = mapped_column(
         Numeric(precision=5, scale=2),
@@ -228,19 +229,19 @@ class QuoteItem(BaseModel):
     
     @property
     def subtotal(self) -> Decimal:
-        """Calculate line subtotal before tax."""
+        """Calculate line subtotal (HT - before tax)."""
         gross = self.quantity * self.unit_price
         discount = gross * (self.discount_percent / 100)
         return gross - discount
     
     @property
     def tax_amount(self) -> Decimal:
-        """Calculate tax amount for this item."""
+        """Calculate tax amount for this line."""
         return self.subtotal * (self.tax_rate / 100)
     
     @property
     def total(self) -> Decimal:
-        """Calculate line total including tax."""
+        """Calculate line total (TTC - with tax)."""
         return self.subtotal + self.tax_amount
     
     def __repr__(self) -> str:
